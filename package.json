@@ -1,0 +1,11 @@
+{
+  "name": "content-vault",
+  "version": "1.0.0",
+  "description": "Personal content storage website",
+  "scripts": {
+    "serve": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контент Хранилище</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">
+                <i class="fas fa-folder-open"></i>
+                Контент Хранилище
+            </h1>
+            <button id="adminToggle" class="admin-btn">
+                <i class="fas fa-lock"></i>
+                <span>Админ</span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="tabs-nav">
+        <div class="tabs-container">
+            <button class="tab-btn active" data-tab="bookmarks">
+                <i class="fas fa-bookmark"></i>
+                <span>Закладки</span>
+            </button>
+            <button class="tab-btn" data-tab="photos">
+                <i class="fas fa-image"></i>
+                <span>Фото</span>
+            </button>
+            <button class="tab-btn" data-tab="videos">
+                <i class="fas fa-video"></i>
+                <span>Видео</span>
+            </button>
+            <button class="tab-btn" data-tab="articles">
+                <i class="fas fa-newspaper"></i>
+                <span>Статьи</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div id="contentGrid" class="content-grid"></div>
+        <div id="emptyState" class="empty-state hidden">
+            <i class="fas fa-folder-open"></i>
+            <p>Контента пока нет</p>
+        </div>
+    </main>
+
+    <div id="loader" class="loader hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <button id="addContentBtn" class="fab hidden" title="Добавить контент">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-shield"></i> Вход администратора</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label for="adminEmail">Email</label>
+                    <input type="email" id="adminEmail" required placeholder="admin@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Пароль</label>
+                    <input type="password" id="adminPassword" required placeholder="Введите пароль">
+                </div>
+                <div id="loginError" class="error-message hidden"></div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+            </form>
+            <div id="adminStatus" class="admin-status hidden">
+                <p><i class="fas fa-check-circle"></i> Вы вошли как администратор</p>
+                <button id="logoutBtn" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addContentModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Добавить контент</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="addContentForm">
+                <div class="form-group">
+                    <label for="contentType">Тип контента</label>
+                    <select id="contentType" required>
+                        <option value="bookmarks">Закладка (ссылка)</option>
+                        <option value="photos">Фото</option>
+                        <option value="videos">Видео</option>
+                        <option value="articles">Статья</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="contentTitle">Название</label>
+                    <input type="text" id="contentTitle" required placeholder="Введите название">
+                </div>
+                <div id="urlFieldGroup" class="form-group">
+                    <label for="contentUrl">URL адрес</label>
+                    <input type="url" id="contentUrl" placeholder="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="contentDescription">Описание</label>
+                    <textarea id="contentDescription" rows="3" placeholder="Краткое описание"></textarea>
+                </div>
+                <div id="articleEditorGroup" class="form-group hidden">
+                    <label>Содержание статьи</label>
+                    <div id="articleEditor"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Сохранить
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="articleViewModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="articleTitle"></h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="article-content" id="articleContent"></div>
+        </div>
+    </div>
+
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/db.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
