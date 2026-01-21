@@ -218,36 +218,43 @@ function openEditModal(item) {
 
 // Инициализировать редактор статей
 function setupArticleEditor() {
-    if (!window.Quill) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
-        script.onload = () => {
-            initQuillEditors();
-        };
-        document.head.appendChild(script);
-    } else {
-        initQuillEditors();
-    }
+    initQuillEditors();
 }
 
 function initQuillEditors() {
-    // Редактор для добавления/редактирования статей
-    quillContentEditor = new Quill('#contentEditor', {
-        theme: 'snow',
-        placeholder: 'Напишите полный текст вашей статьи здесь...',
-        modules: {
-            toolbar: [
-                [{ 'header': [1, 2, 3, 4, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'color': [] }, { 'background': [] }],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'indent': '-1'}, { 'indent': '+1' }],
-                ['blockquote', 'code-block'],
-                ['link', 'image', 'video'],
-                ['clean']
-            ]
+    // Ждём небольшую задержку чтобы DOM был готов
+    setTimeout(() => {
+        const editorContainer = document.querySelector('#contentEditor');
+        if (!editorContainer) {
+            console.error('Контейнер редактора не найден');
+            return;
         }
-    });
+        
+        // Проверяем, что Quill доступен
+        if (typeof Quill === 'undefined') {
+            console.error('Quill.js не загружен');
+            return;
+        }
+        
+        // Редактор для добавления/редактирования статей
+        quillContentEditor = new Quill('#contentEditor', {
+            theme: 'snow',
+            placeholder: 'Напишите полный текст вашей статьи здесь...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, 4, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    ['blockquote', 'code-block'],
+                    ['link', 'image', 'video'],
+                    ['clean']
+                ]
+            }
+        });
+        console.log('Редактор Quill инициализирован');
+    }, 100);
 }
 
 async function handleLogin(e) {
