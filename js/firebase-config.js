@@ -3,12 +3,12 @@
 // Инструкция: https://console.firebase.google.com/ -> Проект -> Настройки -> General -> Your apps
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAIaL-kSIuy1GfnEXeDdeP92shDdbqT0tI",
+    authDomain: "file-dump-2a5ba.firebaseapp.com",
+    projectId: "file-dump-2a5ba",
+    storageBucket: "file-dump-2a5ba.firebasestorage.app",
+  messagingSenderId: "626874517340",
+  appId: "1:626874517340:web:24b542f773926277172399",
 };
 
 // Глобальные переменные
