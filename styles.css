@@ -691,3 +691,88 @@ body {
         font-size: 24px;
     }
 }
+
+/* Кнопка редактирования на карточке */
+.card-edit-btn {
+    position: absolute;
+    top: 12px;
+    right: 56px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: var(--transition);
+}
+
+.card:hover .card-edit-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.card-edit-btn:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+/* Отрывок статьи на карточке */
+.card-excerpt {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-style: italic;
+}
+
+/* Кнопка опасности */
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+    width: 100%;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover);
+}
+
+/* Редактор полного контента статьи */
+.content-editor {
+    height: 350px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: white;
+}
+
+.content-editor .ql-toolbar {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border: 2px solid var(--border-color) !important;
+    border-bottom: none !important;
+    background: var(--background);
+}
+
+.content-editor .ql-container {
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    border: 2px solid var(--border-color) !important;
+    font-family: inherit !important;
+    font-size: 15px !important;
+}
+
+.content-editor .ql-editor {
+    min-height: 280px;
+}
+
+.content-editor .ql-editor.ql-blank::before {
+    font-style: normal;
+    color: var(--text-secondary);
+}
