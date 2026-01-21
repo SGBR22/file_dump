@@ -3,6 +3,8 @@ let currentTab = 'bookmarks';
 let isAdmin = false;
 let currentUser = null;
 let quillEditor = null;
+let quillContentEditor = null;
+let editingItemId = null;
 let allItems = [];
 
 // Инициализация приложения
@@ -35,7 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Проверить состояние авторизации
 function checkAuthState() {
-    // Проверяем localStorage
     const savedAdmin = window.getCurrentAdmin ? window.getCurrentAdmin() : null;
     if (savedAdmin) {
         isAdmin = true;
@@ -43,7 +44,6 @@ function checkAuthState() {
         updateAdminUI();
     }
     
-    // Если Firebase настроен, проверяем его состояние
     if (window.isFirebaseReady && window.isFirebaseReady()) {
         window.onAuthStateChanged((user) => {
             if (user) {
@@ -52,7 +52,6 @@ function checkAuthState() {
                 window.saveAdminState(user);
                 updateAdminUI();
             } else {
-                // Если не авторизован в Firebase, используем localStorage
                 const saved = window.getCurrentAdmin ? window.getCurrentAdmin() : null;
                 if (saved) {
                     isAdmin = true;
@@ -67,17 +66,13 @@ function checkAuthState() {
 // Инициализировать real-time обновления
 function initRealtimeUpdates() {
     if (window.isFirebaseReady && window.isFirebaseReady()) {
-        // Подписка на Firestore
         window.subscribeToItems((items) => {
             allItems = items;
             renderContent();
         });
     } else {
-        // Используем локальное хранилище
         allItems = window.getFromLocal ? window.getFromLocal() : [];
         renderContent();
-        
-        // Показываем уведомление
         showNotification('Firebase не настроен. Используется локальное хранилище.', 'warning');
     }
 }
@@ -109,7 +104,7 @@ function setupModals() {
     const addContentModal = document.getElementById('addContentModal');
     
     addContentBtn.addEventListener('click', () => {
-        addContentModal.classList.remove('hidden');
+        openAddModal();
     });
     
     document.querySelectorAll('.modal-close').forEach(btn => {
@@ -134,26 +129,91 @@ function setupForms() {
     adminLoginForm.addEventListener('submit', handleLogin);
     
     const addContentForm = document.getElementById('addContentForm');
-    addContentForm.addEventListener('submit', handleAddContent);
+    addContentForm.addEventListener('submit', handleAddOrUpdateContent);
     
     const contentType = document.getElementById('contentType');
     contentType.addEventListener('change', () => {
-        const urlFieldGroup = document.getElementById('urlFieldGroup');
-        const articleEditorGroup = document.getElementById('articleEditorGroup');
-        const urlInput = document.getElementById('contentUrl');
-        
-        if (contentType.value === 'articles') {
-            urlFieldGroup.classList.add('hidden');
-            articleEditorGroup.classList.remove('hidden');
-            urlInput.required = false;
-        } else {
-            urlFieldGroup.classList.remove('hidden');
-            articleEditorGroup.classList.add('hidden');
-            if (contentType.value !== 'articles') {
-                urlInput.required = true;
-            }
-        }
+        updateFormFields();
     });
+}
+
+// Обновить видимость полей в зависимости от типа контента
+function updateFormFields() {
+    const contentType = document.getElementById('contentType').value;
+    const urlFieldGroup = document.getElementById('urlFieldGroup');
+    const contentEditorGroup = document.getElementById('contentEditorGroup');
+    const urlInput = document.getElementById('contentUrl');
+    
+    // Скрываем все дополнительные поля по умолчанию
+    if (urlFieldGroup) urlFieldGroup.classList.add('hidden');
+    if (contentEditorGroup) contentEditorGroup.classList.add('hidden');
+    
+    if (contentType === 'articles') {
+        // Для статей показываем редактор контента
+        if (contentEditorGroup) contentEditorGroup.classList.remove('hidden');
+        if (urlFieldGroup) urlFieldGroup.classList.add('hidden');
+        if (urlInput) urlInput.required = false;
+    } else {
+        // Для остальных типов показываем URL
+        if (urlFieldGroup) urlFieldGroup.classList.remove('hidden');
+        if (contentEditorGroup) contentEditorGroup.classList.add('hidden');
+        if (urlInput) urlInput.required = true;
+    }
+}
+
+// Открыть модалку добавления
+function openAddModal() {
+    editingItemId = null;
+    const addContentModal = document.getElementById('addContentModal');
+    const formTitle = addContentModal.querySelector('h2');
+    const submitBtn = addContentForm.querySelector('button[type="submit"]');
+    const contentType = document.getElementById('contentType');
+    
+    // Сбрасываем форму
+    document.getElementById('addContentForm').reset();
+    
+    // Сбрасываем редактор статей
+    if (quillContentEditor) {
+        quillContentEditor.setContents([]);
+    }
+    
+    // Сбрасываем тип на первый
+    contentType.value = 'bookmarks';
+    updateFormFields();
+    
+    // Обновляем заголовок и кнопку
+    formTitle.innerHTML = '<i class="fas fa-plus-circle"></i> Добавить контент';
+    submitBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
+    
+    addContentModal.classList.remove('hidden');
+}
+
+// Открыть модалку редактирования
+function openEditModal(item) {
+    editingItemId = item.id;
+    const addContentModal = document.getElementById('addContentModal');
+    const formTitle = addContentModal.querySelector('h2');
+    const submitBtn = addContentForm.querySelector('button[type="submit"]');
+    const contentType = document.getElementById('contentType');
+    
+    // Заполняем форму данными элемента
+    contentType.value = item.type;
+    document.getElementById('contentTitle').value = item.title || '';
+    document.getElementById('contentUrl').value = item.url || '';
+    document.getElementById('contentDescription').value = item.description || '';
+    
+    // Заполняем редактор статей
+    if (item.type === 'articles' && quillContentEditor) {
+        quillContentEditor.root.innerHTML = item.content || '';
+    }
+    
+    updateFormFields();
+    
+    // Обновляем заголовок и кнопку
+    formTitle.innerHTML = '<i class="fas fa-edit"></i> Редактировать контент';
+    submitBtn.innerHTML = '<i class="fas fa-save"></i> Обновить';
+    
+    addContentModal.classList.remove('hidden');
 }
 
 // Инициализировать редактор статей
@@ -162,33 +222,34 @@ function setupArticleEditor() {
         const script = document.createElement('script');
         script.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
         script.onload = () => {
-            initQuillEditor();
+            initQuillEditors();
         };
         document.head.appendChild(script);
     } else {
-        initQuillEditor();
+        initQuillEditors();
     }
 }
 
-function initQuillEditor() {
-    quillEditor = new Quill('#articleEditor', {
+function initQuillEditors() {
+    // Редактор для добавления/редактирования статей
+    quillContentEditor = new Quill('#contentEditor', {
         theme: 'snow',
-        placeholder: 'Напишите вашу статью здесь...',
+        placeholder: 'Напишите полный текст вашей статьи здесь...',
         modules: {
             toolbar: [
-                [{ 'header': [1, 2, 3, false] }],
+                [{ 'header': [1, 2, 3, 4, false] }],
                 ['bold', 'italic', 'underline', 'strike'],
                 [{ 'color': [] }, { 'background': [] }],
                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'indent': '-1'}, { 'indent': '+1' }],
                 ['blockquote', 'code-block'],
-                ['link', 'image'],
+                ['link', 'image', 'video'],
                 ['clean']
             ]
         }
     });
 }
 
-// Обработка входа
 async function handleLogin(e) {
     e.preventDefault();
     
@@ -203,7 +264,6 @@ async function handleLogin(e) {
     
     try {
         if (window.isFirebaseReady && window.isFirebaseReady()) {
-            // Используем Firebase Auth
             const user = await window.loginAdmin(email, password);
             currentUser = {
                 uid: user.uid,
@@ -212,12 +272,10 @@ async function handleLogin(e) {
             };
             window.saveAdminState(currentUser);
         } else {
-            // Используем localStorage для тестирования
             const storedPass = localStorage.getItem('adminPassword');
             const storedEmail = localStorage.getItem('adminEmail');
             
             if (!storedPass) {
-                // Создаём нового админа
                 localStorage.setItem('adminEmail', email);
                 localStorage.setItem('adminPassword', password);
                 currentUser = { email, isAdmin: true };
@@ -244,7 +302,6 @@ async function handleLogin(e) {
     }
 }
 
-// Обработка выхода
 async function handleLogout() {
     try {
         if (window.isFirebaseReady && window.isFirebaseReady()) {
@@ -273,8 +330,8 @@ async function handleLogout() {
     }
 }
 
-// Обработка добавления контента
-async function handleAddContent(e) {
+// Добавить или обновить контент
+async function handleAddOrUpdateContent(e) {
     e.preventDefault();
     
     const type = document.getElementById('contentType').value;
@@ -297,37 +354,59 @@ async function handleAddContent(e) {
         title,
         url: type === 'articles' ? '' : url,
         description,
-        content: type === 'articles' && quillEditor ? quillEditor.root.innerHTML : ''
+        content: type === 'articles' && quillContentEditor ? quillContentEditor.root.innerHTML : ''
     };
     
     try {
-        if (window.isFirebaseReady && window.isFirebaseReady()) {
-            // Добавляем в Firestore
-            await window.addItem(itemData);
+        if (editingItemId) {
+            // Редактирование существующего элемента
+            await updateItem(editingItemId, itemData);
+            showNotification('Контент обновлён!', 'success');
         } else {
-            // Добавляем в локальное хранилище
-            const items = window.getFromLocal ? window.getFromLocal() : [];
-            items.unshift({
-                id: 'local_' + Date.now(),
-                ...itemData,
-                createdAt: new Date().toISOString()
-            });
-            window.saveToLocal(items);
-            allItems = items;
+            // Добавление нового элемента
+            await window.addItem(itemData);
+            showNotification('Контент добавлен!', 'success');
         }
         
         document.getElementById('addContentModal').classList.add('hidden');
         e.target.reset();
-        if (quillEditor) {
-            quillEditor.setContents([]);
+        if (quillContentEditor) {
+            quillContentEditor.setContents([]);
         }
         
+        editingItemId = null;
         renderContent();
-        showNotification('Контент добавлен!', 'success');
         
     } catch (error) {
-        console.error('Ошибка добавления:', error);
-        showNotification('Ошибка добавления контента', 'error');
+        console.error('Ошибка:', error);
+        showNotification('Ошибка сохранения контента', 'error');
+    }
+}
+
+// Обновить существующий элемент
+async function updateItem(itemId, itemData) {
+    if (window.isFirebaseReady && window.isFirebaseReady()) {
+        // Обновляем в Firestore
+        const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const db = window.db;
+        await updateDoc(doc(db, 'items', itemId), {
+            ...itemData,
+            updatedAt: serverTimestamp()
+        });
+        console.log('Документ обновлён:', itemId);
+    } else {
+        // Обновляем в локальном хранилище
+        const items = window.getFromLocal ? window.getFromLocal() : [];
+        const index = items.findIndex(item => item.id === itemId);
+        if (index !== -1) {
+            items[index] = {
+                ...items[index],
+                ...itemData,
+                updatedAt: new Date().toISOString()
+            };
+            window.saveToLocal(items);
+            allItems = items;
+        }
     }
 }
 
@@ -339,10 +418,8 @@ async function deleteItem(itemId) {
     
     try {
         if (window.isFirebaseReady && window.isFirebaseReady()) {
-            // Удаляем из Firestore
             await window.deleteItem(itemId);
         } else {
-            // Удаляем из локального хранилища
             const items = window.getFromLocal ? window.getFromLocal().filter(item => item.id !== itemId) : [];
             window.saveToLocal(items);
             allItems = items;
@@ -441,10 +518,18 @@ function createCardHTML(item) {
         previewContent = `<div class="placeholder-icon"><i class="fas fa-link"></i></div>`;
     }
     
-    const deleteButton = isAdmin ? 
-        `<button class="card-delete-btn" data-id="${item.id}" title="Удалить">
-            <i class="fas fa-times"></i>
-        </button>` : '';
+    // Кнопки для админа
+    let adminButtons = '';
+    if (isAdmin) {
+        adminButtons = `
+            <button class="card-edit-btn" data-id="${item.id}" title="Редактировать">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
+            <button class="card-delete-btn" data-id="${item.id}" title="Удалить">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+    }
     
     return `
         <div class="card" data-id="${item.id}" data-type="${item.type}" data-url="${item.url || ''}">
@@ -454,11 +539,12 @@ function createCardHTML(item) {
                     <i class="fas ${typeIcons[item.type]}"></i>
                     ${typeLabels[item.type]}
                 </div>
-                ${deleteButton}
+                ${adminButtons}
             </div>
             <div class="card-body">
                 <div class="card-title">${escapeHTML(item.title)}</div>
                 ${item.description ? `<div class="card-description">${escapeHTML(item.description)}</div>` : ''}
+                ${item.type === 'articles' && item.content ? `<div class="card-excerpt">${escapeHTML(item.content.replace(/<[^>]*>/g, '').substring(0, 100))}...</div>` : ''}
                 <div class="card-meta">
                     ${domain ? `<span class="card-domain"><i class="fas fa-link"></i> ${escapeHTML(domain)}</span>` : ''}
                     <span class="card-date">${date}</span>
@@ -470,6 +556,7 @@ function createCardHTML(item) {
 
 // Настроить события карточек
 function setupCardEvents() {
+    // Кнопки удаления
     document.querySelectorAll('.card-delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -478,20 +565,103 @@ function setupCardEvents() {
         });
     });
     
+    // Кнопки редактирования
+    document.querySelectorAll('.card-edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const itemId = btn.dataset.id;
+            const item = allItems.find(i => i.id === itemId);
+            if (item) {
+                openEditModal(item);
+            }
+        });
+    });
+    
+    // Клик по карточке
     document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('click', () => {
             const type = card.dataset.type;
             const url = card.dataset.url;
             const item = allItems.find(i => i.id === card.dataset.id);
             
-            if (type === 'articles' && item) {
-                openArticle(item);
-            } else if (url) {
-                window.open(url, '_blank');
+            if (isAdmin) {
+                // Если админ - показываем меню с опциями
+                showItemOptions(item);
+            } else {
+                // Если гость - просто открываем статью или ссылку
+                if (type === 'articles' && item) {
+                    openArticle(item);
+                } else if (url) {
+                    window.open(url, '_blank');
+                }
             }
         });
     });
 }
+
+// Показать опции для элемента (для админа)
+function showItemOptions(item) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> ${escapeHTML(item.title)}</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <button class="btn btn-primary" style="margin-bottom: 12px;" onclick="openEditModalFromOutside('${item.id}')">
+                    <i class="fas fa-edit"></i> Редактировать
+                </button>
+                ${item.type === 'articles' ? `
+                    <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="openArticleFromOutside('${item.id}')">
+                        <i class="fas fa-book-open"></i> Читать статью
+                    </button>
+                ` : item.url ? `
+                    <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="window.open('${escapeHTML(item.url)}', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Открыть ссылку
+                    </button>
+                ` : ''}
+                <button class="btn btn-danger" onclick="deleteItemFromOutside('${item.id}')">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Закрытие модалки
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.remove());
+}
+
+// Функции для вызова из HTML (для модалок)
+window.openEditModalFromOutside = function(itemId) {
+    const item = allItems.find(i => i.id === itemId);
+    if (item) {
+        openEditModal(item);
+        // Удаляем модалку опций
+        const modal = document.querySelector('.modal');
+        if (modal) modal.remove();
+    }
+};
+
+window.openArticleFromOutside = function(itemId) {
+    const item = allItems.find(i => i.id === itemId);
+    if (item) {
+        openArticle(item);
+        const modal = document.querySelector('.modal');
+        if (modal) modal.remove();
+    }
+};
+
+window.deleteItemFromOutside = function(itemId) {
+    const modal = document.querySelector('.modal');
+    if (modal) modal.remove();
+    deleteItem(itemId);
+};
 
 // Открыть статью
 function openArticle(item) {
