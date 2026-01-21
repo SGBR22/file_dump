@@ -1,5 +1,4 @@
 // Операции с базой данных Firestore
-
 // Получить URL видео для встраивания
 window.getEmbedUrl = function(url) {
     if (!url) return null;
