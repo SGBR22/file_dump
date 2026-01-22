@@ -884,6 +884,158 @@ form {
     color: var(--tarkov-bg-dark);
 }
 
+/* ═══ Source Toggle (URL vs File) ═══ */
+.source-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.source-toggle input[type="radio"] {
+    display: none;
+}
+
+.source-toggle .source-btn {
+    flex: 1;
+    padding: 12px 20px;
+    background: var(--tarkov-bg-element);
+    border: 1px solid var(--tarkov-border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tarkov-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.source-toggle .source-btn:hover {
+    border-color: var(--tarkov-orange);
+    color: var(--tarkov-orange);
+}
+
+.source-toggle input[type="radio"]:checked + .source-btn {
+    background: var(--tarkov-orange);
+    border-color: var(--tarkov-orange);
+    color: var(--tarkov-bg-dark);
+}
+
+/* ═══ File Drop Zone ═══ */
+.file-drop-zone {
+    border: 2px dashed var(--tarkov-border);
+    border-radius: var(--radius-md);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    background: var(--tarkov-bg-element);
+}
+
+.file-drop-zone:hover,
+.file-drop-zone.drag-over {
+    border-color: var(--tarkov-orange);
+    background: rgba(255, 157, 0, 0.05);
+}
+
+.file-drop-zone i {
+    font-size: 48px;
+    color: var(--tarkov-text-muted);
+    margin-bottom: 16px;
+}
+
+.file-drop-zone p {
+    color: var(--tarkov-text-primary);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.file-drop-zone .file-hint {
+    font-size: 12px;
+    color: var(--tarkov-text-muted);
+}
+
+/* ═══ File Info ═══ */
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--tarkov-bg-element);
+    border: 1px solid var(--tarkov-border);
+    border-radius: var(--radius-sm);
+    margin-top: 12px;
+}
+
+.file-info i {
+    font-size: 24px;
+    color: var(--tarkov-orange);
+}
+
+.file-info #fileName {
+    flex: 1;
+    font-size: 14px;
+    color: var(--tarkov-text-primary);
+    word-break: break-all;
+}
+
+.btn-remove-file {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--tarkov-border);
+    background: transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--tarkov-text-secondary);
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-remove-file:hover {
+    border-color: var(--tarkov-red);
+    color: var(--tarkov-red);
+}
+
+/* ═══ Upload Progress ═══ */
+.upload-progress {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.upload-progress .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--tarkov-bg-dark);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--tarkov-border);
+}
+
+.upload-progress .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--tarkov-orange) 0%, var(--tarkov-orange-light) 100%);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.upload-progress .progress-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tarkov-orange);
+    min-width: 45px;
+    text-align: right;
+}
+
 /* ═══ Buttons ═══ */
 .btn {
     padding: 12px 24px;
