@@ -151,6 +151,11 @@ body {
     gap: 24px;
 }
 
+.content-grid.list-view {
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
 .card {
     background: var(--surface);
     border-radius: var(--radius-lg);
@@ -482,6 +487,292 @@ body {
 .form-group textarea {
     resize: vertical;
     min-height: 100px;
+}
+
+/* Стили для редактора Quill */
+.content-editor {
+    min-height: 250px;
+    font-size: 15px;
+    background: white;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.content-editor .ql-toolbar {
+    border: 2px solid var(--border-color);
+    border-bottom: none;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    background: #f9fafb;
+}
+
+.content-editor .ql-container {
+    border: 2px solid var(--border-color);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    font-size: 15px;
+}
+
+.content-editor .ql-editor {
+    min-height: 200px;
+    font-family: inherit;
+}
+
+.content-editor .ql-editor.ql-blank::before {
+    color: var(--text-secondary);
+    font-style: normal;
+}
+
+/* Стили для ввода тегов */
+.tags-input-container {
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    background: white;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 48px;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.tags-input-container:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.tag-chip i {
+    cursor: pointer;
+    opacity: 0.8;
+    transition: var(--transition);
+}
+
+.tag-chip i:hover {
+    opacity: 1;
+}
+
+#contentTags {
+    flex: 1;
+    min-width: 150px;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    padding: 4px;
+}
+
+.tags-autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+}
+
+.autocomplete-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.autocomplete-item:hover {
+    background: var(--background);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Стили для фильтров тегов */
+.tag-filters {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 24px;
+}
+
+.tag-filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.btn-clear-filters {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.btn-clear-filters:hover {
+    background: rgba(37, 99, 235, 0.1);
+}
+
+.tag-filters-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-filter-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.tag-filter-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.tag-filter-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Стили для тегов на карточке */
+.card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.card-tag {
+    padding: 3px 10px;
+    background: var(--background);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Компактный вид для ссылок */
+.card-link-compact {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.card-link-compact:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.card-link-compact .link-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.card-link-compact .link-favicon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background);
+    border-radius: var(--radius-sm);
+}
+
+.card-link-compact .link-favicon img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.card-link-compact .link-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-link-compact .link-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-link-compact .link-domain {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.card-link-compact .link-thumbnail {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--background);
+}
+
+.card-link-compact .link-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-link-compact .card-tags {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    padding-left: 16px;
+    border-left: 1px solid var(--border-color);
+    margin-left: 8px;
+}
+
+.card-link-compact .card-edit-btn,
+.card-link-compact .card-delete-btn {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-left: 8px;
 }
 
 .btn {
