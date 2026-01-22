@@ -598,14 +598,13 @@ function renderContent() {
     let filteredItems = allItems;
     
     if (currentTab !== 'all') {
-        const tabToTypeMap = {
-            'links': 'links',
-            'photos': 'photos',
-            'videos': 'videos',
-            'articles': 'articles'
-        };
-        
-        filteredItems = allItems.filter(item => item.type === tabToTypeMap[currentTab]);
+        filteredItems = allItems.filter(item => {
+            if (currentTab === 'links') {
+                // Для вкладки ссылок показываем оба типа: links и bookmarks
+                return item.type === 'links' || item.type === 'bookmarks';
+            }
+            return item.type === currentTab;
+        });
     }
     
     // Фильтрация по тегу
@@ -646,7 +645,12 @@ function updateTagFiltersUI() {
             'videos': 'videos',
             'articles': 'articles'
         };
-        relevantItems = allItems.filter(item => item.type === tabToTypeMap[currentTab]);
+        relevantItems = allItems.filter(item => {
+            if (currentTab === 'links') {
+                return item.type === 'links' || item.type === 'bookmarks';
+            }
+            return item.type === currentTab;
+        });
     }
     
     // Собираем уникальные теги
@@ -727,7 +731,7 @@ function createCardHTML(item) {
     let cardClass = 'card';
     let cardLayout = '';
     
-    if (item.type === 'links') {
+    if (item.type === 'links' || item.type === 'bookmarks') {
         cardClass += ' card-link-compact';
         // Превью ссылки: favicon + миниатюра если есть
         const faviconUrl = item.url ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
@@ -806,7 +810,7 @@ function createCardHTML(item) {
     
     return `
         <div class="${cardClass}" data-id="${item.id}" data-type="${item.type}" data-url="${item.url || ''}">
-            ${item.type === 'links' ? cardLayout : cardLayout}
+            ${cardLayout}
             ${adminButtons}
             ${tagsHTML}
         </div>
