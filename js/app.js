@@ -733,7 +733,7 @@ function createCardHTML(item) {
     
     if (item.type === 'links' || item.type === 'bookmarks') {
         cardClass += ' card-link-compact';
-        // Превью ссылки: favicon + миниатюра если есть
+        // Превью ссылки: favicon + название + миниатюра если есть
         const faviconUrl = item.url ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
         const hasImage = item.imageUrl || item.thumbnail;
         const thumbnailUrl = item.imageUrl || item.thumbnail || '';
@@ -865,7 +865,7 @@ function setupCardEvents() {
 // Показать опции для элемента (для админа)
 function showItemOptions(item) {
     const modal = document.createElement('div');
-    modal.className = 'modal';
+    modal.className = 'modal modal-options';
     modal.innerHTML = `
         <div class="modal-backdrop"></div>
         <div class="modal-content">
@@ -874,19 +874,19 @@ function showItemOptions(item) {
                 <button class="modal-close">&times;</button>
             </div>
             <div style="padding: 24px;">
-                <button class="btn btn-primary" style="margin-bottom: 12px;" onclick="openEditModalFromOutside('${item.id}')">
+                <button class="btn btn-primary" style="margin-bottom: 12px;" onclick="openEditModalFromOutside('${item.id}', this)">
                     <i class="fas fa-edit"></i> Редактировать
                 </button>
                 ${item.type === 'articles' ? `
-                    <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="openArticleFromOutside('${item.id}')">
+                    <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="openArticleFromOutside('${item.id}', this)">
                         <i class="fas fa-book-open"></i> Читать статью
                     </button>
                 ` : item.url ? `
-                    <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="window.open('${escapeHTML(item.url)}', '_blank')">
+                    <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="window.open('${escapeHTML(item.url)}', '_blank'); closeOptionsModal(this)">
                         <i class="fas fa-external-link-alt"></i> Открыть ссылку
                     </button>
                 ` : ''}
-                <button class="btn btn-danger" onclick="deleteItemFromOutside('${item.id}')">
+                <button class="btn btn-danger" onclick="deleteItemFromOutside('${item.id}', this)">
                     <i class="fas fa-trash"></i> Удалить
                 </button>
             </div>
@@ -900,29 +900,40 @@ function showItemOptions(item) {
     modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.remove());
 }
 
-// Функции для вызова из HTML (для модалок)
-window.openEditModalFromOutside = function(itemId) {
-    const item = allItems.find(i => i.id === itemId);
-    if (item) {
-        openEditModal(item);
-        // Удаляем модалку опций
-        const modal = document.querySelector('.modal');
-        if (modal) modal.remove();
-    }
-};
-
-window.openArticleFromOutside = function(itemId) {
-    const item = allItems.find(i => i.id === itemId);
-    if (item) {
-        openArticle(item);
-        const modal = document.querySelector('.modal');
-        if (modal) modal.remove();
-    }
-};
-
-window.deleteItemFromOutside = function(itemId) {
-    const modal = document.querySelector('.modal');
+// Закрыть модалку опций
+function closeOptionsModal(button) {
+    const modal = button.closest('.modal-options');
     if (modal) modal.remove();
+}
+
+// Функции для вызова из HTML (для модалок)
+window.openEditModalFromOutside = function(itemId, button) {
+    const item = allItems.find(i => i.id === itemId);
+    if (item) {
+        // Закрываем модалку опций перед открытием новой
+        const optionsModal = button.closest('.modal-options');
+        if (optionsModal) optionsModal.remove();
+        
+        openEditModal(item);
+    }
+};
+
+window.openArticleFromOutside = function(itemId, button) {
+    const item = allItems.find(i => i.id === itemId);
+    if (item) {
+        // Закрываем модалку опций перед открытием новой
+        const optionsModal = button.closest('.modal-options');
+        if (optionsModal) optionsModal.remove();
+        
+        openArticle(item);
+    }
+};
+
+window.deleteItemFromOutside = function(itemId, button) {
+    // Закрываем модалку опций перед удалением
+    const optionsModal = button.closest('.modal-options');
+    if (optionsModal) optionsModal.remove();
+    
     deleteItem(itemId);
 };
 
