@@ -1,11 +1,13 @@
 // Глобальное состояние приложения
-let currentTab = 'bookmarks';
+let currentTab = 'links';
 let isAdmin = false;
 let currentUser = null;
 let quillEditor = null;
 let quillContentEditor = null;
 let editingItemId = null;
 let allItems = [];
+let currentTags = []; // Теги текущего элемента
+let selectedTagFilter = null; // Выбранный тег для фильтрации
 
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', async () => {
@@ -80,12 +82,21 @@ function initRealtimeUpdates() {
 // Настроить вкладки
 function setupTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
+    const contentGrid = document.getElementById('contentGrid');
     
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             tabButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
+            
+            // Добавляем класс list-view для вкладки ссылок
+            if (currentTab === 'links') {
+                contentGrid.classList.add('list-view');
+            } else {
+                contentGrid.classList.remove('list-view');
+            }
+            
             renderContent();
         });
     });
@@ -135,7 +146,132 @@ function setupForms() {
     contentType.addEventListener('change', () => {
         updateFormFields();
     });
+    
+    // Настройка тегов
+    setupTagInput();
+    
+    // Очистка тегов при сбросе формы
+    addContentForm.addEventListener('reset', () => {
+        setTimeout(() => {
+            currentTags = [];
+            renderTagsContainer();
+        }, 0);
+    });
+    
+    // Настройка очистки фильтров тегов
+    const clearFiltersBtn = document.getElementById('clearTagFilters');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', () => {
+            selectedTagFilter = null;
+            renderContent();
+            updateTagFiltersUI();
+        });
+    }
 }
+
+// Настройка ввода тегов с автодополнением
+function setupTagInput() {
+    const tagInput = document.getElementById('contentTags');
+    const autocomplete = document.getElementById('tagsAutocomplete');
+    
+    tagInput.addEventListener('input', (e) => {
+        const value = e.target.value.trim().toLowerCase();
+        
+        if (value.length < 1) {
+            autocomplete.classList.add('hidden');
+            return;
+        }
+        
+        // Получаем все существующие теги из базы
+        const allTags = getAllTags();
+        const filteredTags = allTags.filter(tag => 
+            tag.toLowerCase().includes(value) && 
+            !currentTags.includes(tag)
+        );
+        
+        if (filteredTags.length > 0) {
+            autocomplete.innerHTML = filteredTags.map(tag => 
+                `<div class="autocomplete-item" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</div>`
+            ).join('');
+            autocomplete.classList.remove('hidden');
+        } else {
+            autocomplete.classList.add('hidden');
+        }
+    });
+    
+    // Клик по элементу автодополнения
+    autocomplete.addEventListener('click', (e) => {
+        if (e.target.classList.contains('autocomplete-item')) {
+            const tag = e.target.dataset.tag;
+            addTag(tag);
+            tagInput.value = '';
+            autocomplete.classList.add('hidden');
+        }
+    });
+    
+    // Закрытие автодополнения при клике вне
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.tags-input-container')) {
+            autocomplete.classList.add('hidden');
+        }
+    });
+    
+    // Enter для добавления нового тега
+    tagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = tagInput.value.trim();
+            if (value && !currentTags.includes(value)) {
+                addTag(value);
+                tagInput.value = '';
+            }
+        }
+        if (e.key === 'Backspace' && !tagInput.value && currentTags.length > 0) {
+            removeTag(currentTags[currentTags.length - 1]);
+        }
+    });
+}
+
+// Получить все существующие теги из базы
+function getAllTags() {
+    const tags = new Set();
+    allItems.forEach(item => {
+        if (item.tags && Array.isArray(item.tags)) {
+            item.tags.forEach(tag => tags.add(tag));
+        }
+    });
+    return Array.from(tags).sort();
+}
+
+// Добавить тег
+function addTag(tag) {
+    const normalizedTag = tag.trim();
+    if (normalizedTag && !currentTags.includes(normalizedTag)) {
+        currentTags.push(normalizedTag);
+        renderTagsContainer();
+    }
+}
+
+// Удалить тег
+function removeTag(tag) {
+    currentTags = currentTags.filter(t => t !== tag);
+    renderTagsContainer();
+}
+
+// Отрендерить контейнер тегов
+function renderTagsContainer() {
+    const container = document.getElementById('tagsContainer');
+    container.innerHTML = currentTags.map(tag => `
+        <span class="tag-chip">
+            ${escapeHTML(tag)}
+            <i class="fas fa-times" onclick="removeTagFromOutside('${escapeHTML(tag)}')"></i>
+        </span>
+    `).join('');
+}
+
+window.removeTagFromOutside = function(tag) {
+    removeTag(tag);
+};
 
 // Обновить видимость полей в зависимости от типа контента
 function updateFormFields() {
@@ -178,8 +314,12 @@ function openAddModal() {
     }
     
     // Сбрасываем тип на первый
-    contentType.value = 'bookmarks';
+    contentType.value = 'links';
     updateFormFields();
+    
+    // Сбрасываем теги
+    currentTags = [];
+    renderTagsContainer();
     
     // Обновляем заголовок и кнопку
     formTitle.innerHTML = '<i class="fas fa-plus-circle"></i> Добавить контент';
@@ -206,6 +346,10 @@ function openEditModal(item) {
     if (item.type === 'articles' && quillContentEditor) {
         quillContentEditor.root.innerHTML = item.content || '';
     }
+    
+    // Загружаем теги
+    currentTags = item.tags && Array.isArray(item.tags) ? [...item.tags] : [];
+    renderTagsContainer();
     
     updateFormFields();
     
@@ -361,7 +505,8 @@ async function handleAddOrUpdateContent(e) {
         title,
         url: type === 'articles' ? '' : url,
         description,
-        content: type === 'articles' && quillContentEditor ? quillContentEditor.root.innerHTML : ''
+        content: type === 'articles' && quillContentEditor ? quillContentEditor.root.innerHTML : '',
+        tags: [...currentTags]
     };
     
     try {
@@ -380,6 +525,10 @@ async function handleAddOrUpdateContent(e) {
         if (quillContentEditor) {
             quillContentEditor.setContents([]);
         }
+        
+        // Сбрасываем теги
+        currentTags = [];
+        renderTagsContainer();
         
         editingItemId = null;
         renderContent();
@@ -450,7 +599,7 @@ function renderContent() {
     
     if (currentTab !== 'all') {
         const tabToTypeMap = {
-            'bookmarks': 'bookmarks',
+            'links': 'links',
             'photos': 'photos',
             'videos': 'videos',
             'articles': 'articles'
@@ -458,6 +607,17 @@ function renderContent() {
         
         filteredItems = allItems.filter(item => item.type === tabToTypeMap[currentTab]);
     }
+    
+    // Фильтрация по тегу
+    if (selectedTagFilter) {
+        filteredItems = filteredItems.filter(item => 
+            item.tags && Array.isArray(item.tags) && 
+            item.tags.includes(selectedTagFilter)
+        );
+    }
+    
+    // Обновляем UI фильтров тегов
+    updateTagFiltersUI();
     
     if (filteredItems.length === 0) {
         grid.innerHTML = '';
@@ -472,17 +632,72 @@ function renderContent() {
     setupCardEvents();
 }
 
+// Обновить UI фильтров тегов
+function updateTagFiltersUI() {
+    const filtersContainer = document.getElementById('tagFilters');
+    const filtersList = document.getElementById('tagFiltersList');
+    
+    // Получаем все теги из текущей вкладки
+    let relevantItems = allItems;
+    if (currentTab !== 'all') {
+        const tabToTypeMap = {
+            'links': 'links',
+            'photos': 'photos',
+            'videos': 'videos',
+            'articles': 'articles'
+        };
+        relevantItems = allItems.filter(item => item.type === tabToTypeMap[currentTab]);
+    }
+    
+    // Собираем уникальные теги
+    const allTags = new Set();
+    relevantItems.forEach(item => {
+        if (item.tags && Array.isArray(item.tags)) {
+            item.tags.forEach(tag => allTags.add(tag));
+        }
+    });
+    
+    const tags = Array.from(allTags).sort();
+    
+    if (tags.length === 0) {
+        filtersContainer.classList.add('hidden');
+        return;
+    }
+    
+    filtersContainer.classList.remove('hidden');
+    
+    filtersList.innerHTML = tags.map(tag => `
+        <button class="tag-filter-btn ${selectedTagFilter === tag ? 'active' : ''}" 
+                data-tag="${escapeHTML(tag)}">
+            ${escapeHTML(tag)}
+        </button>
+    `).join('');
+    
+    // Добавляем обработчики
+    filtersList.querySelectorAll('.tag-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.dataset.tag;
+            if (selectedTagFilter === tag) {
+                selectedTagFilter = null;
+            } else {
+                selectedTagFilter = tag;
+            }
+            renderContent();
+        });
+    });
+}
+
 // Создать HTML карточки
 function createCardHTML(item) {
     const typeIcons = {
-        'bookmarks': 'fa-bookmark',
+        'links': 'fa-link',
         'photos': 'fa-image',
         'videos': 'fa-video',
         'articles': 'fa-newspaper'
     };
     
     const typeLabels = {
-        'bookmarks': 'Закладка',
+        'links': 'Ссылка',
         'photos': 'Фото',
         'videos': 'Видео',
         'articles': 'Статья'
@@ -508,21 +723,72 @@ function createCardHTML(item) {
         });
     }
     
-    let previewClass = 'card-preview';
-    let previewContent = '';
+    // Компактный вид для ссылок
+    let cardClass = 'card';
+    let cardLayout = '';
     
-    if (item.type === 'photos') {
-        previewContent = `<img src="${item.url}" alt="${item.title}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-icon\\'><i class=\\'fas fa-image\\'></i></div>'">`;
-    } else if (item.type === 'videos') {
-        previewContent = `
-            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;">
-                <i class="fas fa-play-circle" style="font-size:48px;color:white;opacity:0.8;"></i>
+    if (item.type === 'links') {
+        cardClass += ' card-link-compact';
+        // Превью ссылки: favicon + миниатюра если есть
+        const faviconUrl = item.url ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
+        const hasImage = item.imageUrl || item.thumbnail;
+        const thumbnailUrl = item.imageUrl || item.thumbnail || '';
+        
+        cardLayout = `
+            <div class="link-preview">
+                <div class="link-favicon">
+                    <img src="${faviconUrl}" alt="" onerror="this.style.display='none'">
+                </div>
+                <div class="link-info">
+                    <div class="link-title">${escapeHTML(item.title)}</div>
+                    <div class="link-domain">${escapeHTML(domain)}</div>
+                </div>
+                ${hasImage ? `<div class="link-thumbnail"><img src="${escapeHTML(thumbnailUrl)}" alt="" onerror="this.parentElement.remove()"></div>` : ''}
             </div>
         `;
-    } else if (item.type === 'articles') {
-        previewContent = `<div class="placeholder-icon"><i class="fas fa-newspaper"></i></div>`;
     } else {
-        previewContent = `<div class="placeholder-icon"><i class="fas fa-link"></i></div>`;
+        // Обычный вид для фото, видео, статей
+        let previewClass = 'card-preview';
+        let previewContent = '';
+        
+        if (item.type === 'photos') {
+            previewContent = `<img src="${item.url}" alt="${item.title}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-icon\\'><i class=\\'fas fa-image\\'></i></div>'">`;
+        } else if (item.type === 'videos') {
+            previewContent = `
+                <div class="video-preview">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+            `;
+        } else if (item.type === 'articles') {
+            previewContent = `<div class="placeholder-icon"><i class="fas fa-newspaper"></i></div>`;
+        } else {
+            previewContent = `<div class="placeholder-icon"><i class="fas fa-link"></i></div>`;
+        }
+        
+        cardLayout = `
+            <div class="${previewClass}">
+                ${previewContent}
+                <div class="card-type-badge">
+                    <i class="fas ${typeIcons[item.type]}"></i>
+                    ${typeLabels[item.type]}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="card-title">${escapeHTML(item.title)}</div>
+                ${item.description ? `<div class="card-description">${escapeHTML(item.description)}</div>` : ''}
+                ${item.type === 'articles' && item.content ? `<div class="card-excerpt">${escapeHTML(item.content.replace(/<[^>]*>/g, '').substring(0, 100))}...</div>` : ''}
+                <div class="card-meta">
+                    ${domain ? `<span class="card-domain"><i class="fas fa-link"></i> ${escapeHTML(domain)}</span>` : ''}
+                    <span class="card-date">${date}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Теги
+    let tagsHTML = '';
+    if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
+        tagsHTML = `<div class="card-tags">${item.tags.map(tag => `<span class="card-tag">${escapeHTML(tag)}</span>`).join('')}</div>`;
     }
     
     // Кнопки для админа
@@ -539,24 +805,10 @@ function createCardHTML(item) {
     }
     
     return `
-        <div class="card" data-id="${item.id}" data-type="${item.type}" data-url="${item.url || ''}">
-            <div class="${previewClass}">
-                ${previewContent}
-                <div class="card-type-badge">
-                    <i class="fas ${typeIcons[item.type]}"></i>
-                    ${typeLabels[item.type]}
-                </div>
-                ${adminButtons}
-            </div>
-            <div class="card-body">
-                <div class="card-title">${escapeHTML(item.title)}</div>
-                ${item.description ? `<div class="card-description">${escapeHTML(item.description)}</div>` : ''}
-                ${item.type === 'articles' && item.content ? `<div class="card-excerpt">${escapeHTML(item.content.replace(/<[^>]*>/g, '').substring(0, 100))}...</div>` : ''}
-                <div class="card-meta">
-                    ${domain ? `<span class="card-domain"><i class="fas fa-link"></i> ${escapeHTML(domain)}</span>` : ''}
-                    <span class="card-date">${date}</span>
-                </div>
-            </div>
+        <div class="${cardClass}" data-id="${item.id}" data-type="${item.type}" data-url="${item.url || ''}">
+            ${item.type === 'links' ? cardLayout : cardLayout}
+            ${adminButtons}
+            ${tagsHTML}
         </div>
     `;
 }
