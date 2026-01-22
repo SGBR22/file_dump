@@ -42,6 +42,10 @@
                 <i class="fas fa-newspaper"></i>
                 <span>Статьи</span>
             </button>
+            <button class="tab-btn" data-tab="files">
+                <i class="fas fa-file"></i>
+                <span>Файлы</span>
+            </button>
         </div>
     </nav>
 
@@ -114,6 +118,7 @@
                         <option value="links">Ссылка</option>
                         <option value="photos">Фото</option>
                         <option value="videos">Видео</option>
+                        <option value="files">Файл</option>
                         <option value="articles">Статья</option>
                     </select>
                 </div>
@@ -121,10 +126,47 @@
                     <label for="contentTitle">Название</label>
                     <input type="text" id="contentTitle" required placeholder="Введите название">
                 </div>
+                
+                <!-- Переключатель: Ссылка или Файл -->
+                <div class="source-toggle">
+                    <input type="radio" id="sourceUrl" name="contentSource" value="url" checked>
+                    <label for="sourceUrl" class="source-btn">
+                        <i class="fas fa-link"></i> Ссылка
+                    </label>
+                    <input type="radio" id="sourceFile" name="contentSource" value="file">
+                    <label for="sourceFile" class="source-btn">
+                        <i class="fas fa-upload"></i> Файл
+                    </label>
+                </div>
+                
                 <div id="urlFieldGroup" class="form-group">
                     <label for="contentUrl">URL адрес</label>
                     <input type="url" id="contentUrl" placeholder="https://example.com">
                 </div>
+                
+                <div id="fileFieldGroup" class="form-group hidden">
+                    <label>Загрузить файл</label>
+                    <div id="fileDropZone" class="file-drop-zone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Перетащите файл сюда или нажмите для выбора</p>
+                        <span class="file-hint">Любой файл, без ограничений размера</span>
+                    </div>
+                    <input type="file" id="fileInput" style="display: none;">
+                    <div id="fileInfo" class="file-info hidden">
+                        <i class="fas fa-file"></i>
+                        <span id="fileName"></span>
+                        <button type="button" id="removeFile" class="btn-remove-file">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="uploadProgress" class="upload-progress hidden">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <span class="progress-text" id="progressText">0%</span>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="contentDescription">Краткое описание</label>
                     <textarea id="contentDescription" rows="2" placeholder="Краткое описание для карточки"></textarea>
@@ -141,7 +183,7 @@
                     <label>Полный текст статьи</label>
                     <div id="contentEditor" class="content-editor"></div>
                 </div>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
                     <i class="fas fa-save"></i> Сохранить
                 </button>
             </form>
