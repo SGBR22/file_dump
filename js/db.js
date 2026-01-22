@@ -1,4 +1,5 @@
 // Операции с базой данных Firestore
+
 // Получить URL видео для встраивания
 window.getEmbedUrl = function(url) {
     if (!url) return null;
@@ -138,4 +139,91 @@ window.saveToLocal = function(items) {
 // Получить из локального хранилища
 window.getFromLocal = function() {
     return JSON.parse(localStorage.getItem('contentVaultItems') || '[]');
+};
+
+// ═══ Firebase Storage Operations ═══
+
+// Загрузить файл в Firebase Storage
+window.uploadFile = async function(file, onProgress) {
+    const storage = window.getStorage();
+    if (!storage) {
+        throw new Error('Firebase Storage не инициализирован');
+    }
+    
+    try {
+        const { ref, uploadBytesResumable, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js');
+        
+        // Генерируем уникальное имя файла
+        const timestamp = Date.now();
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storagePath = `uploads/${timestamp}_${sanitizedName}`;
+        const storageRef = ref(storage, storagePath);
+        
+        // Загружаем файл с поддержкой прогресса
+        const uploadTask = uploadBytesResumable(storageRef, file);
+        
+        return new Promise((resolve, reject) => {
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Прогресс загрузки
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    if (onProgress) {
+                        onProgress(progress);
+                    }
+                },
+                (error) => {
+                    console.error('Ошибка загрузки файла:', error);
+                    reject(error);
+                },
+                async () => {
+                    // Загрузка завершена
+                    try {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        resolve({
+                            url: downloadURL,
+                            storagePath: storagePath,
+                            fileName: file.name,
+                            fileSize: file.size,
+                            fileType: file.type
+                        });
+                    } catch (error) {
+                        reject(error);
+                    }
+                }
+            );
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки файла:', error);
+        throw error;
+    }
+};
+
+// Удалить файл из Firebase Storage
+window.deleteFile = async function(storagePath) {
+    if (!storagePath) {
+        return;
+    }
+    
+    const storage = window.getStorage();
+    if (!storage) {
+        return;
+    }
+    
+    try {
+        const { ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js');
+        const fileRef = ref(storage, storagePath);
+        await deleteObject(fileRef);
+        console.log('Файл удалён из Storage:', storagePath);
+    } catch (error) {
+        console.error('Ошибка удаления файла из Storage:', error);
+        // Не бросаем ошибку, чтобы не блокировать удаление документа
+    }
+};
+
+// Удалить элемент с файлом из Storage
+window.deleteItemWithFile = async function(itemId, storagePath) {
+    // Сначала удаляем файл из Storage, затем документ из Firestore
+    await window.deleteFile(storagePath);
+    await window.deleteItem(itemId);
 };
